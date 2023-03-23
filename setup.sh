@@ -9,6 +9,8 @@ sudo -n dnf install -y pipenv
 cd /vagrant
 # Install dependencies with Pipenv
 pipenv sync --dev
+#run migration
+pipenv run python manage.py migrate 
 
 # run our app. setsid, the parentheses and "&" are used to perform a "double
 # fork" so that out app stays up after the setup script finishes.
