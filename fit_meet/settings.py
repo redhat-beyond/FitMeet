@@ -40,8 +40,8 @@ INSTALLED_APPS = [
     'static_home_page.apps.StaticHomePageConfig',
     'location.apps.LocationConfig',
     'category.apps.CategoryConfig',
-    'category_location.apps.CategoryLocationConfig'
-    'poll.apps.PollConfig'
+    'category_location.apps.CategoryLocationConfig',
+    'poll.apps.PollConfig',
 ]
 
 MIDDLEWARE = [

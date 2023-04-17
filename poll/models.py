@@ -1,8 +1,11 @@
 from django.db import models
-from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
+
+
+def get_default_end_date():
+    return datetime.now() + timedelta(days=1)
 
 
 class Poll(models.Model):
     max_suggestions = models.PositiveIntegerField()
-    end_time = models.DateTimeField(default=lambda: timezone.now() + timedelta(days=2))
+    end_time = models.DateTimeField(default=get_default_end_date)
