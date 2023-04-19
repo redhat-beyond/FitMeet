@@ -9,12 +9,13 @@ from django.core.exceptions import ValidationError
 import pytz
 
 
-class EvnetManager(models.Manager):
+class EventManager(models.Manager):
     invalid_category_location_message = (
         "The pair of category and location is not in category location table"
     )
     invalid_time_error_message = "Error - event end time cannot be equal or less than start time"
     invalid_poll_error = "Error- poll end time is late than the event start time"
+    invalid_join_error = "Error - event reached max capacity"
 
     def __str__(self) -> str:
         return self.name
@@ -34,7 +35,7 @@ class EvnetManager(models.Manager):
         self.throw_exception_if_invalid_category_location(
             category_id=category_id, location_id=location_id
         )
-        my_event_catrgoty = Category.objects.get(id=category_id)
+        my_event_category = Category.objects.get(id=category_id)
         my_event_location = Location.objects.get(id=location_id)
 
         # Check start_time and time
@@ -50,7 +51,7 @@ class EvnetManager(models.Manager):
         # Todo - update user event table when it's created
         # save event
         my_event = Event(
-            category=my_event_catrgoty,
+            category=my_event_category,
             location=my_event_location,
             poll=my_poll,
             name=name,
@@ -73,13 +74,18 @@ class EvnetManager(models.Manager):
             raise ValidationError(self.invalid_time_error_message)
 
     def throw_exception_if_invalid_poll_end_time(self, event_start_time, poll_end_time):
-        time_zone = pytz.timezone('UTC')
-        event_start_time = time_zone.localize(event_start_time)
+        event_start_time = self.localize_datetime(event_start_time)
         if poll_end_time >= event_start_time:
             raise ValidationError(self.invalid_poll_error)
 
-    def join_event(self, user_id):
+    def join_event(self, user_id, event_id):
+        event = Event.objects.get(id=event_id)
         # TODO- upadate user event table
+        if event.participants_num < event.max_participants:
+            event.participants_num += 1
+            event.save()
+        else:
+            raise ValidationError(self.invalid_join_error)
         return 0
 
     def generate_teams(self, team_size):
@@ -87,7 +93,35 @@ class EvnetManager(models.Manager):
         return 0
 
     def update_event_time(self, event_id, start_time, end_time):
-        return 0
+        event = Event.objects.get(id=event_id)
+        if start_time < end_time:
+            event.start_time = start_time
+            event.end_time = end_time
+            event.save()
+        else:
+            raise ValidationError(self.invalid_time_error_message)
+
+    def update_category(self, event_id, category_id):
+        event = Event.objects.get(id=event_id)
+        self.throw_exception_if_invalid_category_location(
+            category_id=category_id, location_id=event.location.id
+        )
+        updated_category = Category.objects.get(id=category_id)
+        event.category = updated_category
+        event.save()
+
+    def update_location(self, event_id, location_id):
+        event = Event.objects.get(id=event_id)
+        self.throw_exception_if_invalid_category_location(
+            category_id=event.category.id, location_id=location_id
+        )
+        updated_location = Location.objects.get(id=location_id)
+        event.location = updated_location
+        event.save()
+
+    def localize_datetime(self, datetime):
+        time_zone = pytz.timezone('UTC')
+        return time_zone.localize(datetime)
 
 
 class Event(models.Model):
@@ -100,7 +134,7 @@ class Event(models.Model):
     start_time = models.DateTimeField("Event Starting Time")
     end_time = models.DateTimeField("Event End Time")
     is_private = models.BooleanField(default=False)
-    objects = EvnetManager()
+    objects = EventManager()
 
     def __str__(self) -> str:
         return self.name
