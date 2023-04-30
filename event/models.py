@@ -13,6 +13,7 @@ class EventManager(models.Manager):
     invalid_category_location_message = "The pair of category and location is not in category location table"
     invalid_time_error_message = "Error - event end time cannot be equal or less than start time"
     invalid_poll_error = "Error- poll end time is late than the event start time"
+    invalid_event_size_error = "Error - the number of max participants exeeds the maximum"
 
     def __str__(self) -> str:
         return self.name
@@ -38,6 +39,9 @@ class EventManager(models.Manager):
 
             # Check start_time and time
             self.verfiy_event_date(start_time=start_time, end_time=end_time)
+
+            # Check participants number
+            self.verify_max_participants(max_participants=max_participants, current_participants_num=1)
 
             # validate poll time and create poll
             self.verify_poll_end_time(poll_end_time=poll_end_time, event_start_time=start_time)
@@ -82,13 +86,18 @@ class EventManager(models.Manager):
         if poll_end_time >= event_start_time:
             raise ValidationError(self.invalid_poll_error)
 
+    def verify_max_participants(self, max_participants, current_participants_num):
+        if max_participants <= current_participants_num:
+            raise ValidationError(self.invalid_event_size_error)
+
     def join_event(self, user_id, event_id):
         try:
             with transaction.atomic():
-                event = Event.objects.get(id=event_id)
+                event = Event.manager.get(id=event_id)
                 user = Profile.objects.get(id=user_id)
-                if event.participants_num >= event.max_participants:
-                    raise ValidationError("_")
+                self.verify_max_participants(
+                    max_participants=event.max_participants, current_participants_num=event.participants_num
+                )
                 event.participants_num += 1
                 event.save()
                 user_event = UserEvent(
@@ -101,25 +110,51 @@ class EventManager(models.Manager):
 
         return True
 
-    def update_event_time(self, event_id, start_time, end_time):
-        event = Event.objects.get(id=event_id)
+    def update(
+        self,
+        event_id,
+        category_id=None,
+        location_id=None,
+        name=None,
+        max_participants=None,
+        start_time=None,
+        end_time=None,
+        is_private=None,
+    ):
+        event = Event.manager.get(id=event_id)
+        if category_id:
+            self.update_category(event, category_id)
+        if location_id:
+            self.update_location(event, location_id)
+        if name:
+            event.name = name
+        if max_participants is not None:
+            self.update_max_participants(event, max_participants)
+        if start_time or end_time:
+            self.update_event_time(event, start_time, end_time)
+        if is_private is not None:
+            event.is_private = is_private
+
+        event.save()
+        return event
+
+    def update_max_participants(self, event, max_participants):
+        self.verify_max_participants(max_participants=max_participants, current_participants_num=event.participants_num)
+        event.max_participants = max_participants
+
+    def update_event_time(self, event, start_time, end_time):
         if end_time <= start_time:
             raise ValidationError(self.invalid_time_error_message)
         event.start_time = start_time
         event.end_time = end_time
-        event.save()
 
-    def update_category(self, event_id, category_id):
-        event = Event.objects.get(id=event_id)
+    def update_category(self, event, category_id):
         self.verify_category_location(category_id=category_id, location_id=event.location.id)
         event.category = Category.objects.get(id=category_id)
-        event.save()
 
-    def update_location(self, event_id, location_id):
-        event = Event.objects.get(id=event_id)
+    def update_location(self, event, location_id):
         self.verify_category_location(category_id=event.category.id, location_id=location_id)
         event.location = Location.objects.get(id=location_id)
-        event.save()
 
 
 class Event(models.Model):
@@ -132,7 +167,7 @@ class Event(models.Model):
     start_time = models.DateTimeField("Event Starting Time")
     end_time = models.DateTimeField("Event End Time")
     is_private = models.BooleanField(default=False)
-    objects = EventManager()
+    manager = EventManager()
 
     def __str__(self) -> str:
         return self.name

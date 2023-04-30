@@ -65,7 +65,7 @@ def poll1():
 
 
 @pytest.fixture
-def event_id_1(category_location1, poll1):
+def event1(category_location1, poll1):
     new_event = models.Event(
         category=category_location1.category,
         location=category_location1.location,
@@ -77,12 +77,12 @@ def event_id_1(category_location1, poll1):
         is_private=IS_PRIVATE,
     )
     new_event.save()
-    return new_event.id
+    return new_event
 
 
 @pytest.fixture
-def validate_event_id_1(category_location1, user1):
-    event_id = models.Event.objects.create_event(
+def validate_event1(category_location1, user1):
+    event_id = models.Event.manager.create_event(
         category_id=category_location1.category.id,
         location_id=category_location1.location.id,
         name=EVENT_NAME,
@@ -94,24 +94,25 @@ def validate_event_id_1(category_location1, user1):
         poll_suggestions=POLL_MAX_SUGGESTIONS,
         user_id=user1.id,
     )
-    return event_id
+    event = models.Event.manager.get(id=event_id)
+    return event
 
 
 @pytest.mark.django_db()
 class TestEvent:
     def test_location_category_validation_correct(self, category_location1):
         try:
-            models.Event.objects.verify_category_location(
+            models.Event.manager.verify_category_location(
                 location_id=category_location1.location.id, category_id=category_location1.category.id
             )
             assert True
-        except ValidationError as e:
-            pytest.fail(f'An error occurred: {str(e)}')
+        except ValidationError as err:
+            pytest.fail(f'An error occurred: {str(err)}')
 
     def test_location_category_validation_error(self, location1, category1):
-        with pytest.raises(ValidationError) as e:
-            models.Event.objects.verify_category_location(location_id=location1.id, category_id=category1.id)
-        assert e.value.message == models.EventManager.invalid_category_location_message
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.verify_category_location(location_id=location1.id, category_id=category1.id)
+        assert err.value.message == models.EventManager.invalid_category_location_message
 
     @pytest.mark.parametrize(
         "start_date, end_date",
@@ -123,10 +124,10 @@ class TestEvent:
     )
     def test_time_validation_correct(self, start_date, end_date):
         try:
-            models.Event.objects.verfiy_event_date(start_date, end_date)
+            models.Event.manager.verfiy_event_date(start_date, end_date)
             assert True
-        except ValidationError as e:
-            pytest.fail(f'An error occurred: {str(e)}')
+        except ValidationError as err:
+            pytest.fail(f'An error occurred: {str(err)}')
 
     @pytest.mark.parametrize(
         "start_date, end_date",
@@ -137,29 +138,32 @@ class TestEvent:
         ],
     )
     def test_time_validation_error(self, start_date, end_date):
-        with pytest.raises(ValidationError) as e:
-            models.Event.objects.verfiy_event_date(start_date, end_date)
-        assert e.value.message == models.EventManager.invalid_time_error_message
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.verfiy_event_date(start_date, end_date)
+        assert err.value.message == models.EventManager.invalid_time_error_message
 
     def test_poll_end_time_validator(self):
-        with pytest.raises(ValidationError) as e:
-            models.Event.objects.verify_poll_end_time(
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.verify_poll_end_time(
                 poll_end_time=timezone.now() + timedelta(days=1), event_start_time=timezone.now()
             )
-        assert e.value.message == models.EventManager.invalid_poll_error
+        assert err.value.message == models.EventManager.invalid_poll_error
 
-    def test_event_creation_via_manager_and_direct(self, event_id_1, validate_event_id_1):
-        event1 = models.Event.objects.get(id=event_id_1)
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        assert event1.name == validate_event.name
-        assert event1.location == validate_event.location
-        assert event1.category == validate_event.category
-        assert event1.max_participants == validate_event.max_participants
-        assert event1.max_participants == validate_event.max_participants
-        assert event1.participants_num == validate_event.participants_num
-        assert event1.start_time == validate_event.start_time
-        assert event1.end_time == validate_event.end_time
-        assert event1.is_private == validate_event.is_private
+    def test_praticipants_validation(self):
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.verify_max_participants(max_participants=0, current_participants_num=1)
+        assert err.value.message == models.EventManager.invalid_event_size_error
+
+    def test_event_creation_via_manager_and_direct(self, event1, validate_event1):
+        assert event1.name == validate_event1.name
+        assert event1.location == validate_event1.location
+        assert event1.category == validate_event1.category
+        assert event1.max_participants == validate_event1.max_participants
+        assert event1.max_participants == validate_event1.max_participants
+        assert event1.participants_num == validate_event1.participants_num
+        assert event1.start_time == validate_event1.start_time
+        assert event1.end_time == validate_event1.end_time
+        assert event1.is_private == validate_event1.is_private
 
     @pytest.mark.parametrize(
         "start_date, end_date",
@@ -169,9 +173,10 @@ class TestEvent:
             (timezone.now(), timezone.now() + timedelta(minutes=2)),
         ],
     )
-    def test_event_update_time_correct(self, validate_event_id_1, start_date, end_date):
-        models.Event.objects.update_event_time(validate_event_id_1, start_date, end_date)
-        updated_event = models.Event.objects.get(id=validate_event_id_1)
+    def test_event_update_time_correct(self, validate_event1, start_date, end_date):
+        updated_event = models.Event.manager.update(
+            event_id=validate_event1.id, start_time=start_date, end_time=end_date
+        )
         assert updated_event.start_time.time() == start_date.time()
         assert updated_event.end_time.time() == end_date.time()
 
@@ -183,76 +188,101 @@ class TestEvent:
             (DATETIME, DATETIME),
         ],
     )
-    def test_event_update_time_error(self, validate_event_id_1, start_date, end_date):
-        with pytest.raises(ValidationError) as e:
-            models.Event.objects.update_event_time(validate_event_id_1, start_date, end_date)
-        assert e.value.message == models.EventManager.invalid_time_error_message
+    def test_event_update_time_error(self, validate_event1, start_date, end_date):
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.update(event_id=validate_event1.id, start_time=start_date, end_time=end_date)
+        assert err.value.message == models.EventManager.invalid_time_error_message
 
-    def test_update_category_correct(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
+    def test_update_category_correct(self, validate_event1):
         cat = models.Category(name="Updated")
         cat.save()
-        cat_loc = models.CategoryLocation(category=cat, location=validate_event.location)
+        cat_loc = models.CategoryLocation(category=cat, location=validate_event1.location)
         cat_loc.save()
-        models.Event.objects.update_category(validate_event.id, cat.id)
-        updated_event = models.Event.objects.get(id=validate_event.id)
+        updated_event = models.Event.manager.update(event_id=validate_event1.id, category_id=cat.id)
         assert updated_event.category.name == "Updated"
 
-    def test_update_category_error(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
+    def test_update_category_error(self, validate_event1):
         cat = models.Category(name="Updated")
         cat.save()
-        with pytest.raises(ValidationError) as e:
-            models.Event.objects.update_category(validate_event.id, cat.id)
-        assert e.value.message == models.EventManager.invalid_category_location_message
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.update(event_id=validate_event1.id, category_id=cat.id)
+        assert err.value.message == models.EventManager.invalid_category_location_message
 
-    def test_update_location_correct(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
+    def test_update_location_correct(self, validate_event1):
         location = models.Location(
             name="update", city="update", street="update", street_number=2, indoor=False, description="update"
         )
         location.save()
-        cat_loc = models.CategoryLocation(location=location, category=validate_event.category)
+        cat_loc = models.CategoryLocation(location=location, category=validate_event1.category)
         cat_loc.save()
-        models.Event.objects.update_location(validate_event.id, location.id)
-        updated_event = models.Event.objects.get(id=validate_event.id)
+        updated_event = models.Event.manager.update(event_id=validate_event1.id, location_id=location.id)
         assert updated_event.location == location
 
-    def test_update_location_error(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        with pytest.raises(ValidationError) as e:
+    def test_update_location_error(self, validate_event1):
+        with pytest.raises(ValidationError) as err:
             location = models.Location(
                 name="update", city="update", street="update", street_number=2, indoor=False, description="update"
             )
             location.save()
-            models.Event.objects.update_location(validate_event.id, location.id)
-        assert e.value.message == models.EventManager.invalid_category_location_message
+            models.Event.manager.update(event_id=validate_event1.id, location_id=location.id)
+        assert err.value.message == models.EventManager.invalid_category_location_message
 
-    def test_join_participant_correct(self, validate_event_id_1, user2):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        current_participants = validate_event.participants_num
-        assert models.Event.objects.join_event(user2.id, validate_event.id)
-        updated_event = models.Event.objects.get(id=validate_event.id)
+    def test_update_max_participants_correct(self, validate_event1):
+        updated_event = models.Event.manager.update(event_id=validate_event1.id, max_participants=MAX_PART + 10)
+        assert updated_event.max_participants == MAX_PART + 10
+
+    def test_update_max_participants_erro(self, validate_event1):
+        with pytest.raises(ValidationError) as err:
+            models.Event.manager.update(event_id=validate_event1.id, max_participants=0)
+        assert err.value.message == models.EventManager.invalid_event_size_error
+
+    def test_update_multipule_values(self, validate_event1):
+        start_time = timezone.now() + timedelta(weeks=1)
+        updated_event = models.Event.manager.update(
+            event_id=validate_event1.id,
+            name='updated',
+            max_participants=MAX_PART + 3,
+            start_time=start_time,
+            end_time=start_time + timedelta(hours=3),
+            is_private=True,
+        )
+        assert updated_event.name == 'updated'
+        assert updated_event.max_participants == MAX_PART + 3
+        assert updated_event.start_time == start_time
+        assert updated_event.end_time == start_time + timedelta(hours=3)
+        assert updated_event.is_private
+
+    def test_update_nothing(self, validate_event1):
+        update_event = models.Event.manager.update(event_id=validate_event1.id)
+        assert update_event.name == validate_event1.name
+        assert update_event.location == validate_event1.location
+        assert update_event.category == validate_event1.category
+        assert update_event.poll == validate_event1.poll
+        assert update_event.start_time == validate_event1.start_time
+        assert update_event.end_time == validate_event1.end_time
+        assert update_event.is_private == validate_event1.is_private
+
+    def test_join_participant_correct(self, validate_event1, user2):
+        current_participants = validate_event1.participants_num
+        assert models.Event.manager.join_event(user2.id, validate_event1.id)
+        updated_event = models.Event.manager.get(id=validate_event1.id)
         assert updated_event.participants_num == current_participants + 1
         try:
-            models.UserEvent.objects.get(userID=user2.id, eventID=validate_event_id_1)
+            models.UserEvent.objects.get(userID=user2.id, eventID=validate_event1.id)
             assert True
-        except models.UserEvent.DoesNotExist as e:
-            pytest.fail(f'An error occurred: {str(e)}')
+        except models.UserEvent.DoesNotExist as err:
+            pytest.fail(f'An error occurred: {str(err)}')
 
-    def test_join_participant_error_reach_max(self, validate_event_id_1, user2):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        validate_event.participants_num = MAX_PART
-        validate_event.save()
-        assert not models.Event.objects.join_event(user2.id, validate_event.id)
+    def test_join_participant_error_reach_max(self, validate_event1, user2):
+        validate_event1.participants_num = MAX_PART
+        validate_event1.save()
+        assert not models.Event.manager.join_event(user2.id, validate_event1.id)
 
-    def test_join_participant_error_invalid_userid(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        participants_num = validate_event.participants_num
-        assert not models.Event.objects.join_event(122, validate_event_id_1)
-        assert participants_num == validate_event.participants_num
+    def test_join_participant_error_invalid_userid(self, validate_event1):
+        participants_num = validate_event1.participants_num
+        assert not models.Event.manager.join_event(122, validate_event1.id)
+        assert participants_num == validate_event1.participants_num
 
-    def test_object_deleted(self, validate_event_id_1):
-        validate_event = models.Event.objects.get(id=validate_event_id_1)
-        validate_event.delete()
-        assert validate_event not in list(models.Event.objects.all())
+    def test_object_deleted(self, validate_event1):
+        validate_event1.delete()
+        assert validate_event1 not in list(models.Event.manager.all())

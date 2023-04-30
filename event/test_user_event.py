@@ -9,10 +9,7 @@ from django.contrib.auth import get_user_model
 
 @pytest.fixture
 def create_user():
-    return get_user_model().objects.create_user(
-        username='testuser',
-        password='testpass'
-    )
+    return get_user_model().objects.create_user(username='testuser', password='testpass')
 
 
 @pytest.fixture
@@ -27,15 +24,13 @@ def create_profile(create_user):
 
 @pytest.fixture
 def create_team():
-    team = Teams.objects.create(
-        name='team name'
-    )
+    team = Teams.objects.create(name='team name')
     return team
 
 
 @pytest.fixture
 def create_event():
-    event = Event.objects.create(
+    event = Event.manager.create(
         name='event name',
         max_participants=1,
         start_time=timezone.now(),
@@ -46,16 +41,14 @@ def create_event():
 
 @pytest.fixture
 def create_user_event(create_event, create_team, create_profile):
-    user_event = UserEvent.objects.create(userID=create_profile,
-                                          eventID=create_event,
-                                          teamID=create_team,
-                                          isEventAdmin=False)
+    user_event = UserEvent.objects.create(
+        userID=create_profile, eventID=create_event, teamID=create_team, isEventAdmin=False
+    )
     return user_event
 
 
 @pytest.mark.django_db
 class TestUserEventModel:
-
     def test_get_user_event(self, create_user_event):
         user_event = UserEvent.objects.get(pk=create_user_event.pk)
         assert user_event == create_user_event
