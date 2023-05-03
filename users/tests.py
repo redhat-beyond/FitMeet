@@ -2,6 +2,7 @@ from datetime import date
 import pytest
 from django.contrib.auth import get_user_model
 from users.models import Profile
+from django.urls import reverse
 
 USER_NAME = 'testuser'
 USER_PASSWORD = 'testpass'
@@ -51,3 +52,20 @@ class TestProfileModel:
     def test_delete_user_deletes_profile(self, profile_user1):
         profile_user1.user.delete()
         assert profile_user1 not in Profile.objects.all()
+
+
+@pytest.mark.django_db()
+class TestUserAndProfileCreation:
+    def test_create_user_and_profile(self):
+        # Create user
+        new_user = get_user_model().objects.create(username=USER_NAME, password=USER_PASSWORD)
+
+        # Create profile
+        new_profile = Profile.objects.create(user=new_user, date_of_birth=date.today(), phone_number=PHONE_NUMBER)
+
+        # Check user was created
+        assert new_user.username == USER_NAME
+
+        # Check profile was created and linked to user
+        assert new_profile.user == new_user
+        assert new_profile.phone_number == PHONE_NUMBER
