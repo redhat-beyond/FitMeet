@@ -2,7 +2,6 @@ from datetime import date
 import pytest
 from django.contrib.auth import get_user_model
 from users.models import Profile
-from django.urls import reverse
 
 USER_NAME = 'testuser'
 USER_PASSWORD = 'testpass'
@@ -56,16 +55,11 @@ class TestProfileModel:
 
 @pytest.mark.django_db()
 class TestUserAndProfileCreation:
-    def test_create_user_and_profile(self):
-        # Create user
-        new_user = get_user_model().objects.create(username=USER_NAME, password=USER_PASSWORD)
-
-        # Create profile
-        new_profile = Profile.objects.create(user=new_user, date_of_birth=date.today(), phone_number=PHONE_NUMBER)
-
+    def test_create_user_and_profile(self, user, profile):
         # Check user was created
-        assert new_user.username == USER_NAME
+        assert user.username == USER_NAME
+        assert user.check_password(USER_PASSWORD)
 
         # Check profile was created and linked to user
-        assert new_profile.user == new_user
-        assert new_profile.phone_number == PHONE_NUMBER
+        assert profile.user == user
+        assert profile.phone_number == PHONE_NUMBER
