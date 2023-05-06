@@ -57,3 +57,7 @@ class TestCategoryModel:
         category = Category.objects.create(name=valid_name)
         category.full_clean()
         assert category.name == valid_name
+
+    def test_static_category(self):
+        category = Category.objects.filter(name="Soccer").first()
+        assert category.name == "Soccer"

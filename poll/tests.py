@@ -8,7 +8,7 @@ from location.models import Location
 from category_location.models import CategoryLocation
 
 EVENT_NAME = "weight lifting"
-CATEGORY = "Gym"
+CATEGORY = "Gym1"
 LOCATION = "Holmes place Netanya"
 MAX_PART = 10
 IS_PRIVATE = False
