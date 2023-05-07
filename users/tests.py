@@ -12,6 +12,7 @@ PHONE_NUMBER_NEW = '0987654321'
 @pytest.fixture
 def user1():
     user = get_user_model().objects.create(username=USER_NAME, password=USER_PASSWORD)
+    user.set_password(USER_PASSWORD)
     user.save()
     return user
 
@@ -55,11 +56,11 @@ class TestProfileModel:
 
 @pytest.mark.django_db()
 class TestUserAndProfileCreation:
-    def test_create_user_and_profile(self, user, profile):
+    def test_create_user_and_profile(self, user1, profile_user1):
         # Check user was created
-        assert user.username == USER_NAME
-        assert user.check_password(USER_PASSWORD)
+        assert user1.username == USER_NAME
+        assert user1.check_password(USER_PASSWORD)
 
         # Check profile was created and linked to user
-        assert profile.user == user
-        assert profile.phone_number == PHONE_NUMBER
+        assert profile_user1.user == user1
+        assert profile_user1.phone_number == PHONE_NUMBER
