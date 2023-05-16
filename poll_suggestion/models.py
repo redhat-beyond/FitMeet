@@ -2,11 +2,7 @@ from django.db import models
 from poll.models import Poll
 from django.db.utils import IntegrityError
 from users.models import Profile
-from datetime import datetime, timedelta
-from django.apps import apps
-from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.utils.timezone import localtime
 
 
 class PollSuggestion(models.Model):

@@ -6,15 +6,12 @@
 # Create your tests here.
 from poll.models import Poll, get_default_end_date
 from .models import PollSuggestion
-from django.test import TestCase
 from datetime import datetime, timedelta
 from django.utils import timezone
-from poll.models import Poll
 from event.models import Event
 from category.models import Category
 from location.models import Location
 from category_location.models import CategoryLocation
-from django.core.exceptions import ValidationError
 import pytest
 
 EVENT_NAME = "weight lifting"
@@ -59,6 +56,7 @@ def setup_event(setup_category_location):
     )
     event.save()
     return event
+
 
 @pytest.fixture
 def setup_poll(setup_event):
