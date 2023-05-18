@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='PollSuggestion',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('time', models.TimeField()),
+                ('time', models.DateTimeField()),
                 ('poll_id', models.ForeignKey(to='poll.Poll', on_delete=models.CASCADE)),
             ],
         ),
