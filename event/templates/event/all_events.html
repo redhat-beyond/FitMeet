@@ -4,31 +4,31 @@
     <button class="EventButton"><a href="{% url 'create_event' user_id=user_id %}">Create Event</a></button>
     <form method="GET" class="form">
         {% csrf_token %}
-        <label for="Choose_filter" class="form-label">Choose Filter:</label>
-
-        <select name="Choose_filter" id="Choose_filter" class="form-select">
-            <option value="Category">Category</option>
-            <option value="Location">Location</option>
-        </select>
-        <button type="submit" class="form-button">Apply Filter</button>
-        {% if request.GET.Choose_filter == "Category" %}
+    
         <label for="Choose_Category" class="form-label">Choose Category:</label>
         <select name="Choose_Category" id="Choose_Category" class="form-select">
+            <option value="None" {% if request.GET.Choose_Category == "None" %}selected{% endif %}>None</option>
             {% for cat in categories %}
-            <option value={{cat}}>{{cat}}</option>
+            <option value="{{cat}}" {% if request.GET.Choose_Category == cat %}selected{% endif %}>{{cat}}</option>
             {% endfor %}
         </select>
-        {% endif %}
-        {% if request.GET.Choose_filter == "Location" %}
-        <label for="Choose_Location" class="form-label">Location</label>
+        
+        <label for="Choose_Location" class="form-label">Choose Location:</label>
         <select name="Choose_Location" id="Choose_Location" class="form-select">
+            <option value="None" {% if request.GET.Choose_Location == "None" %}selected{% endif %}>None</option>
             {% for loc in locations %}
-            <option value={{loc}}>{{loc}}</option>
+            <option value="{{loc}}" {% if request.GET.Choose_Location == loc %}selected{% endif %}>{{loc}}</option>
             {% endfor %}
         </select>
-        {% endif %}
-
-
+    
+        <label for="Order_By" class="form-label">Order By:</label>
+        <select name="Order_By" id="Order_By" class="form-select">
+            <option value="None" {% if request.GET.Order_By == "None" %}selected{% endif %}>None</option>
+            <option value="Time" {% if request.GET.Order_By == "Time" %}selected{% endif %}>Time</option>
+            <option value="Participants" {% if request.GET.Order_By == "Participants" %}selected{% endif %}>Participants</option>
+        </select>
+    
+        <button type="submit" class="form-button">Apply Filter</button>
     </form>
     {% for event in events %}
     <div class="EventCont">
@@ -55,11 +55,9 @@
                             class="EventResult">{{event.participants_num}}/{{event.max_participants}}</span></p>
                 </div>
             </div>
-            <button class="EventButton"><a href="{% url 'view_event' user_id=user.id %}?id={{ event.id }}">Open
+            <button class="EventButton"><a href="{% url 'view_event' user_id=user_id %}?id={{ event.id }}">Open
                     Event</a></button>
         </div>
-    </div>
-
     </div>
     {% endfor %}
     {% endblock %}

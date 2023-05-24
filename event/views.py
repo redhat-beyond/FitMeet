@@ -65,19 +65,23 @@ def view_event(request, user_id):
 
 def event_list(request, user_id):
     events = Event.manager.all()
-    if request.method == "GET":
-        if 'Choose_filter' in request.GET:
-            filter_type = request.GET.get('Choose_filter')
 
-            if filter_type == 'Category' and 'Choose_Category' in request.GET:
-                category = request.GET.get('Choose_Category')
-                events = events.filter(category__name=category)
-            elif filter_type == 'Location' and 'Choose_Location' in request.GET:
-                location = request.GET.get('Choose_Location')
-                events = events.filter(location__name=location)
+    category = request.GET.get('Choose_Category', 'None')
+    if category != 'None':
+        events = events.filter(category__name=category)
 
-    user_id = request.user.id if request.user.is_authenticated else None
+    location = request.GET.get('Choose_Location', 'None')
+    if location != 'None':
+        events = events.filter(location__name=location)
 
+    order_by = request.GET.get('Order_By', 'None')
+    if order_by == 'Time':
+        events = events.order_by('start_time')
+    elif order_by == 'Participants':
+        events = events.order_by('participants_num')
+
+    if not request.user.is_authenticated:
+        user_id = None
     locations = Location.objects.values_list('name', flat=True)
     categories = Category.objects.values_list('name', flat=True)
     context = {'events': events, 'locations': locations, 'categories': categories, 'user_id': user_id}
