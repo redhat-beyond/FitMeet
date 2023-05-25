@@ -195,6 +195,12 @@ def create_url(base_url):
 
 
 @pytest.fixture
+def first_event_info_url(base_url):
+    event = models.Event.manager.first()
+    return f'{base_url}info/?id={event.id}'
+
+
+@pytest.fixture
 def create_event_form_data1(category_location1):
     return {
         'name': EVENT_NAME,

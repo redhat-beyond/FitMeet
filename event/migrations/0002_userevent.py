@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('users', '0001_initial'),
         ('teams', '0001_initial'),
@@ -22,5 +21,9 @@ class Migration(migrations.Migration):
                 ('teamID', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='teams.teams')),
                 ('userID', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='users.profile')),
             ],
+        ),
+        migrations.AlterUniqueTogether(
+            name='userevent',
+            unique_together={('userID', 'eventID')},
         ),
     ]

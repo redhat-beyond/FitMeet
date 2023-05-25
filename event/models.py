@@ -169,6 +169,13 @@ class EventManager(models.Manager):
 
         return True
 
+    def leave_event(self, user_id, event_id):
+        with transaction.atomic():
+            event = Event.manager.get(id=event_id)
+            event.participants_num -= 1
+            event.save()
+            UserEvent.delete_entry(user_id=user_id, event_id=event_id)
+
     def update(
         self,
         event_id,
@@ -250,9 +257,24 @@ class Event(models.Model):
     def __str__(self) -> str:
         return self.name
 
+    def is_full(self):
+        return self.participants_num >= self.max_participants
+
 
 class UserEvent(models.Model):
     userID = models.ForeignKey(Profile, on_delete=models.CASCADE)
     eventID = models.ForeignKey(Event, on_delete=models.CASCADE)
     teamID = models.ForeignKey(Teams, null=True, default=None, on_delete=models.CASCADE)
     isEventAdmin = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('userID', 'eventID')
+
+    @staticmethod
+    def is_user_part_of_event(user_id, event_id):
+        return UserEvent.objects.filter(userID=user_id, eventID=event_id).exists()
+
+    @staticmethod
+    def delete_entry(user_id, event_id):
+        user_event = UserEvent.objects.get(userID=user_id, eventID=event_id)
+        user_event.delete()

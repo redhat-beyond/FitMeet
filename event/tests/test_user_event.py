@@ -58,3 +58,16 @@ class TestUserEventModel:
         user_event.delete()
         with pytest.raises(UserEvent.DoesNotExist):
             UserEvent.objects.get(pk=create_user_event.pk)
+
+    def test_is_user_part_of_event_method_belong(self, validate_event1, user1):
+        assert UserEvent.is_user_part_of_event(user_id=user1.id, event_id=validate_event1.id)
+
+    def test_is_user_part_of_event_method_not_belong(self, validate_event1, user2):
+        assert not UserEvent.is_user_part_of_event(user_id=user2.id, event_id=validate_event1.id)
+
+    def test_user_event_custom_deletion(self, create_user_event):
+        user_id = create_user_event.userID.id
+        evnet_id = create_user_event.eventID.id
+        UserEvent.delete_entry(user_id=user_id, event_id=evnet_id)
+        all_entries = UserEvent.objects.all()
+        assert create_user_event not in all_entries

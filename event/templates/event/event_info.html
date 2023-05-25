@@ -1,7 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="event-info-header">
-    <h2>{{event.name}} Event</h2>
+    <h2 id="title">{{event.name}} Event</h2>
+    {%if is_joined %}
+        <button id="join-leave-btn">
+            <a href="{% url 'view_event' user_id=user.id %}?id={{ event.id }}&join=0">Leave</a>
+        </button>
+    {%else %}
+        {% if event.participants_num < event.max_participants %} 
+            <button id="join-leave-btn">
+                <a href="{% url 'view_event' user_id=user.id %}?id={{ event.id }}&join=1">Join</a>
+            </button>
+        {% endif %}
+    {% endif %}
 </div>
 <div class="event-info-container">
     <ul>
@@ -11,7 +22,11 @@
         <li>Ends At: {{event.end_time}}</li>
         <li>Participants : {{event.participants_num}}/{{event.max_participants}}</li>
     </ul>
+    {% if event.participants_num == event.max_participants %} 
+        <p>This event is full</p>
+    {% endif %}
 </div>
+
 {% if event.participants_num > 1 %}
     {% if team1|length == 0 %}
         <form id="event-form" method="post" >

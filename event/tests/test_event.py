@@ -285,3 +285,22 @@ class TestEvent:
         location = models.Location.objects.filter(name="Bloomfield").first()
         assert event.category == category
         assert event.location == location
+
+    def test_leave_event(self, validate_event1, user1):
+        models.Event.manager.leave_event(user_id=user1.id, event_id=validate_event1.id)
+        users_in_event = models.UserEvent.objects.filter(eventID=validate_event1.id).values_list("userID", flat=True)
+        assert user1 not in users_in_event
+
+    @pytest.mark.parametrize(
+        "participants_current_num, max_participants_num, result",
+        [
+            (2, 2, True),
+            (1, 3, False),
+            (4, 3, True),
+        ],
+    )
+    def test_is_event_full(self, participants_current_num, max_participants_num, result, validate_event1):
+        validate_event1.participants_num = participants_current_num
+        validate_event1.max_participants = max_participants_num
+        validate_event1.save()
+        assert validate_event1.is_full() == result

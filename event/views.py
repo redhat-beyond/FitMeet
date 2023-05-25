@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from .forms import EventForm
 from location.models import Location
 from category.models import Category
-from .models import Event, UserEvent
+from .models import Event, UserEvent, Profile
 from .models import Teams
 
 
@@ -42,7 +42,17 @@ def create_event(request, user_id):
 
 def view_event(request, user_id):
     event_id = request.GET["id"]
+    if 'join' in request.GET:
+        join_or_remove = request.GET["join"]
+        if join_or_remove == "0":
+            Event.manager.leave_event(user_id=user_id, event_id=event_id)
+        elif join_or_remove == "1":
+            Event.manager.join_event(user_id=user_id, event_id=event_id)
+
+    is_joined = UserEvent.is_user_part_of_event(user_id=user_id, event_id=event_id)
     event = Event.manager.get(id=event_id)
+    user = Profile.objects.get(id=user_id)
+
     if request.method == "POST":
         Teams.generate_teams(event_id)
 
@@ -51,14 +61,15 @@ def view_event(request, user_id):
     users_events = UserEvent.objects.filter(eventID=event_id)
     if len(users_events) > 0 and users_events[0].teamID:
         teams = list(set([user_event.teamID for user_event in users_events]))
-        team1 = [user.userID.user.username for user in
-                 UserEvent.objects.filter(teamID=teams[0].id)]
-        team2 = [user.userID.user.username for user in
-                 UserEvent.objects.filter(teamID=teams[1].id)]
+        team1 = [user.userID.user.username for user in UserEvent.objects.filter(teamID=teams[0].id)]
+        team2 = [user.userID.user.username for user in UserEvent.objects.filter(teamID=teams[1].id)]
+
     context = {
         'team1': team1,
         'team2': team2,
-        'event': event
+        'event': event,
+        'user': user,
+        'is_joined': is_joined,
     }
     return render(request, 'event/event_info.html', context)
 
@@ -92,9 +103,5 @@ def view_generate_teams(request, user_id):
     event_id = request.GET["id"]
     event = Event.manager.get(id=event_id)
     team1, team2 = Teams.generate_teams(event_id)
-    context = {
-        'team1': team1,
-        'team2': team2,
-        'event': event
-    }
+    context = {'team1': team1, 'team2': team2, 'event': event}
     return render(request, 'event/event_info.html', context)

@@ -1,10 +1,12 @@
 import re
+import pytest
 from django.utils import timezone
 from pytest_django.asserts import assertRedirects
 from ..forms import EventForm
 from .. import models
 
 
+@pytest.mark.django_db()
 class TestEventUi:
     def test_create_event_get_method(self, client, create_url):
         response = client.get(create_url)
@@ -32,3 +34,7 @@ class TestEventUi:
         response = client.post(create_url, data=create_event_form_data1)
         assert response.status_code == 409
         assert models.EventManager.invalid_time_error_message == response.context['error']
+
+    def test_event_info(self, client, first_event_info_url):
+        response = client.get(first_event_info_url)
+        assert response.status_code == 200
