@@ -1,8 +1,8 @@
 from django.contrib import admin
-from .models import Event
+from .models import Event, UserEvent
 
 
-class Filter(admin.ModelAdmin):
+class EventFilter(admin.ModelAdmin):
     list_display = (
         "id",
         "category",
@@ -16,4 +16,10 @@ class Filter(admin.ModelAdmin):
     list_filter = ("category", "location", "is_private", "max_participants", "participants_num", "start_time")
 
 
-admin.site.register(Event, Filter)
+class UserEventFilter(admin.ModelAdmin):
+    list_display = ("id", "userID_id", "eventID_id", "teamID_id", "isEventAdmin")
+    list_filter = ("userID", "eventID", "teamID", "isEventAdmin")
+
+
+admin.site.register(Event, EventFilter)
+admin.site.register(UserEvent, UserEventFilter)
