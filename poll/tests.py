@@ -113,7 +113,7 @@ class TestPollModel:
         assert not poll_from_db.is_active()
 
     def test_show_suggestions(self, poll1):
-        times = [(datetime.now() + timedelta(minutes=10 * i)).time() for i in range(3)]
+        times = [(datetime.now() + timedelta(minutes=10 * i)) for i in range(1, 4)]
         for time in times:
             poll_suggestion = PollSuggestion(poll_id=poll1, time=time)
             poll_suggestion.save()
@@ -122,8 +122,10 @@ class TestPollModel:
         assert suggestions.count() == 3
 
         suggestion_times = [suggestion.time for suggestion in suggestions]
+        datetime_objects = [dt.replace(tzinfo=None) for dt in suggestion_times]
+
         for time in times:
-            assert time in suggestion_times
+            assert time in datetime_objects
 
     def test_time_remaining_positive(self, poll1):
         poll_from_db = Poll.objects.get(id=poll1.id)
