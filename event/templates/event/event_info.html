@@ -21,6 +21,7 @@
         <li>Starts At: {{event.start_time}}</li>
         <li>Ends At: {{event.end_time}}</li>
         <li>Participants : {{event.participants_num}}/{{event.max_participants}}</li>
+        <li>Poll : {{event.poll}}</li>
     </ul>
     {% if event.participants_num == event.max_participants %} 
         <p>This event is full</p>
