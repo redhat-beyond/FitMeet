@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .forms import UserUpdateForm, ProfileUpdateForm
 from django.contrib import messages
 from event.models import Event, UserEvent
+from django.contrib.auth.views import LoginView
 
 
 @login_required
@@ -33,3 +34,11 @@ def profile(request):
     }
 
     return render(request, 'users/profile.html', context)
+
+
+class CustomLoginView(LoginView):
+    template_name = 'users/login.html'
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Invalid username or password.')
+        return super().form_invalid(form)
