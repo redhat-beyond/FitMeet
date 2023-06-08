@@ -36,7 +36,7 @@ def profile(request):
     return render(request, 'users/profile.html', context)
 
 
-class CustomLoginView(LoginView):
+class LoginViewWithErrorMessage(LoginView):
     template_name = 'users/login.html'
 
     def form_invalid(self, form):
